@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Game</title>
+    <style>
+        .hidden { display: none; }
+        .room, .game { display: none; }
+    </style>
+</head>
+
+    <div id="intro">
+        <h2>Welcome to the Quiz Game</h2>
+        <label for="username">Username:</label>
+        <input type="text" id="username">
+        <button onclick="connectWebSocket()">Enter Game</button>
+    </div>
+
+    <div id="room" class="room hidden">
+        <h3>Room Code: <span id="roomCode"></span></h3>
+        <button onclick="createRoom()">Create Room</button>
+        <label for="joinRoomCode">Join Room Code:</label>
+        <input type="text" id="joinRoomCode">
+        <button onclick="joinRoom()">Join Room</button>
+        <div id="players"></div>
+    </div>
+
+    <div id="game" class="game hidden">
+        <h3>Game Started</h3>
+        <div id="question"></div>
+        <div id="options"></div>
+        <button onclick="toggleReady()">I'm Ready</button>
+        <button onclick="submitAnswer()">Submit Answer</button>
+    </div>
+
+    lse;
+        let playerReady = false;
+
+        function connectWebSocket() {
+            username = document.getElementById('username').value;
+            if (!username) {
+                alert("Please enter a username.");
+                return;
+            }
+            socket = new WebSocket('ws://' + window.location.host + '/ws/game/');
+
+            socket.onopen = function () {
+                document.getElementById('intro').classList.add('hidden');
+                document.getElementById('room').classList.remove('hidden');
+            };
+
+            socket.onmessage = function (e) {
+                const data = JSON.parse(e.data);
+
+                if (data.type === 'room_created') {
+                    roomCode = data.room_code;
+                    document.getElementById('roomCode').innerText = roomCode;
+                } else if (data.type === 'player_status') {
+                    updatePlayers(data.players);
+                } else if (data.type === 'new_question') {
+                    showQuestion(data.question);
+                }
+            };
+        }
+
+        function createRoom() {
+            const command = { command: 'create' };
+            socket.send(JSON.stringify(command));
+        }
+
+        function joinRoom() {
+            const joinRoomCode = document.getElementById('joinRoomCode').value.toUpperCase();
+            const command = { command: 'join', room_code: joinRoomCode };
+            socket.send(JSON.stringify(command));
+        }
+
+        function toggleReady() {
+            const command = { command: 'ready' };
+            socket.send(JSON.stringify(command));
+            playerReady = !playerReady;
+        }
+
+        function startGame() {
+            const command = { command: 'start' };
+            socket.send(JSON.stringify(command));
+        }
+
+        function submitAnswer() {
+            const selectedOption = document.querySelector('input[name="answer"]:checked');
+            if (!selectedOption) {
+                alert("Please select an answer.");
+                return;
+            }
+
+            const command = {
+                command: 'answer',
+                answer: parseInt(selectedOption.value)
+            };
+            socket.send(JSON.stringify(command));
+        }
+
+        function updatePlayers(players) {
+            const playersDiv = document.getElementById('players');
+            playersDiv.innerHTML = '';
+            players.forEach(player => {
+                const playerDiv = document.createElement('div');
+                playerDiv.innerText = `${player.user} - ${player.ready ? 'Ready' : 'Not Ready'} ${player.leader ? '(Leader)' : ''}`;
+                playersDiv.appendChild(playerDiv);
+            });
+        }
+
+        function showQuestion(question) {
+            gameStarted = true;
+            document.getElementById('room').classList.add('hidden');
+            document.getElementById('game').classList.remove('hidden');
+
+            const questionDiv = document.getElementById('question');
+            questionDiv.innerText = question.text;
+
+            const optionsDiv = document.getElementById('options');
+            optionsDiv.innerHTML = '';
+            question.options.forEach((option, index) => {
+                const optionLabel = document.createElement('label');
+                optionLabel.innerHTML = `
+                    <input type="radio" name="answer" value="${index}">
+                    ${option}
+                `;
+                optionsDiv.appendChild(optionLabel);
+            });
+        }
+    </script>
+</body>
+</html>
