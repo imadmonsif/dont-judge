@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -72,7 +73,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'quiz_game.wsgi.application'
 ASGI_APPLICATION = "quiz_game.asgi.application"
-LOGIN_URL = '/accounts/login/'
+LOGIN_URL = 'login/'
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',  # Use InMemory channel layer
