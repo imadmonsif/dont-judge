@@ -3,12 +3,18 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils.crypto import get_random_string
 
+
+
+
 class QuizConsumer(AsyncWebsocketConsumer):
     rooms = {}  # In-memory storage for rooms (consider using database for production)
 
     async def connect(self):
         self.room_code = None
         self.user = self.scope["user"]
+
+        
+        print(self.user)
         await self.accept()
 
     async def disconnect(self, close_code):
@@ -44,6 +50,7 @@ class QuizConsumer(AsyncWebsocketConsumer):
                 'leader': True,
                 'score': 0
             }],
+            'leader': self.user.username,
             'game_started': False,
             'current_question': None,
         }
@@ -55,7 +62,8 @@ class QuizConsumer(AsyncWebsocketConsumer):
 
         await self.send(text_data=json.dumps({
             'type': 'room_created',
-            'room_code': room_code
+            'room_code': room_code,
+            'room': self.rooms[room_code]
         }))
 
     async def join_room(self, data):
@@ -94,7 +102,8 @@ class QuizConsumer(AsyncWebsocketConsumer):
             self.room_code,
             {
                 'type': 'player_joined',
-                'players': room['players']
+                'room_code': room_code,
+                'room': room
             }
         )
 
